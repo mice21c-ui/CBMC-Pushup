@@ -1,0 +1,1012 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="장수 만세">
+<title>💪 일리노이 CBMC 장수 만세 프로그램</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', Arial, sans-serif;
+    background: #f2f2f7;
+    min-height: 100vh;
+    padding: env(safe-area-inset-top, 20px) env(safe-area-inset-right, 16px) env(safe-area-inset-bottom, 20px) env(safe-area-inset-left, 16px);
+    padding-top: max(env(safe-area-inset-top, 20px), 20px);
+    padding-left: max(env(safe-area-inset-left, 16px), 16px);
+    padding-right: max(env(safe-area-inset-right, 16px), 16px);
+    padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 84px);
+  }
+
+  .header { text-align: center; padding: 16px 0 12px; }
+  .header h1 { font-size: 21px; font-weight: 700; color: #1c1c1e; line-height: 1.3; word-break: keep-all; }
+  .header .date { font-size: 14px; color: #8e8e93; margin-top: 4px; }
+  .name-chip {
+    display: inline-block; margin-top: 8px; padding: 5px 14px; border-radius: 20px;
+    border: 1.5px solid #d1d1d6; background: white; color: #007aff;
+    font-size: 14px; font-weight: 600; cursor: pointer;
+  }
+  .name-chip:active { opacity: 0.6; }
+
+  .card {
+    background: white;
+    border-radius: 16px;
+    padding: 16px;
+    margin-bottom: 12px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  }
+
+  .exercise-title { font-size: 17px; font-weight: 600; color: #1c1c1e; margin-bottom: 12px; }
+
+  .controls { display: flex; align-items: center; gap: 10px; }
+
+  .count-input {
+    width: 70px; height: 44px;
+    border: 1.5px solid #d1d1d6; border-radius: 10px;
+    font-size: 20px; font-weight: 700; text-align: center;
+    color: #1c1c1e; background: #f9f9f9;
+    -webkit-appearance: none; outline: none;
+  }
+  .count-input:focus { border-color: #007aff; background: white; }
+
+  .done-btn {
+    background: #34c759; color: white; border: none;
+    border-radius: 10px; height: 44px; padding: 0 18px;
+    font-size: 16px; font-weight: 600; cursor: pointer;
+    transition: opacity 0.15s; white-space: nowrap;
+  }
+  .done-btn:active { opacity: 0.75; transform: scale(0.97); }
+
+  .stats {
+    flex: 1; background: #f2f2f7; border-radius: 10px;
+    padding: 6px 10px; text-align: center;
+  }
+  .stats-label { font-size: 11px; color: #8e8e93; }
+  .stats-value { font-size: 18px; font-weight: 700; color: #1c1c1e; }
+  .stats-sub { font-size: 11px; color: #8e8e93; margin-top: 1px; }
+
+  .summary-card {
+    background: white; border-radius: 16px; padding: 16px;
+    margin-bottom: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  }
+  .summary-title { font-size: 15px; font-weight: 600; color: #8e8e93; margin-bottom: 10px; }
+  .summary-grid { display: grid; grid-template-columns: 1fr; gap: 8px; }
+  .summary-item { text-align: center; background: #ff3b30; border-radius: 10px; padding: 10px 6px; transition: background 0.4s; }
+  .summary-item .num { font-size: 22px; font-weight: 700; color: white; }
+  .summary-item .lbl { font-size: 11px; color: rgba(255,255,255,0.85); margin-top: 2px; }
+
+  /* 그래프 카드 */
+  .chart-card {
+    background: white; border-radius: 16px; padding: 16px;
+    margin-bottom: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  }
+  .chart-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 12px; flex-wrap: wrap; gap: 8px;
+  }
+  .chart-title { font-size: 15px; font-weight: 600; color: #8e8e93; }
+
+  .range-toggle { display: flex; gap: 6px; flex-wrap: wrap; }
+  .range-btn {
+    padding: 5px 12px; border-radius: 20px; border: 1.5px solid #d1d1d6;
+    font-size: 13px; font-weight: 500; color: #8e8e93;
+    background: white; cursor: pointer; transition: all 0.15s;
+  }
+  .range-btn.active { background: #007aff; border-color: #007aff; color: white; }
+
+  .chart-checkboxes { display: flex; gap: 8px 14px; margin-bottom: 12px; flex-wrap: wrap; }
+  .chart-checkbox-label {
+    display: flex; align-items: center; gap: 5px;
+    font-size: 13px; font-weight: 500; cursor: pointer; user-select: none; -webkit-user-select: none;
+  }
+  .chart-checkbox-label input[type=checkbox] {
+    width: 16px; height: 16px; cursor: pointer; accent-color: var(--cb-color);
+  }
+  .cb-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--cb-color); flex-shrink: 0; }
+
+  .chart-wrap { position: relative; width: 100%; overflow-x: auto; }
+  canvas#chartCanvas { display: block; width: 100%; max-width: 100%; }
+  .chart-empty { text-align: center; font-size: 13px; color: #c7c7cc; padding: 30px 0; }
+
+  /* 로그 */
+  .log-section { margin-top: 6px; }
+  .log-title { font-size: 15px; font-weight: 600; color: #8e8e93; margin-bottom: 8px; }
+  .log-item {
+    background: #f9f9f9; border-radius: 8px; padding: 8px 12px;
+    margin-bottom: 6px; font-size: 13px; color: #3a3a3c;
+    display: flex; justify-content: space-between; align-items: center; gap: 8px;
+  }
+  .log-item .log-left { display: flex; align-items: center; gap: 8px; flex: 1; flex-wrap: wrap; }
+  .log-item .log-time { color: #8e8e93; font-size: 12px; }
+  .log-item .log-pending { color: #ff9500; font-size: 11px; }
+  .log-delete-btn {
+    background: none; border: none; cursor: pointer;
+    font-size: 16px; padding: 2px 4px; border-radius: 6px;
+    color: #c7c7cc; transition: color 0.15s, background 0.15s; flex-shrink: 0;
+  }
+  .log-delete-btn:active { color: #ff3b30; background: #fff0f0; }
+  .no-log { font-size: 13px; color: #c7c7cc; text-align: center; padding: 10px; }
+
+  .date-input {
+    flex: 1; min-width: 0; height: 36px; border: 1.5px solid #d1d1d6; border-radius: 8px; padding: 0 8px;
+    font-size: 14px; color: #1c1c1e; background: #f9f9f9; outline: none;
+  }
+
+  /* 리더보드 */
+  .lb-period { font-size: 12px; color: #8e8e93; margin: 10px 0 8px; }
+  .lb-row {
+    background: #f9f9f9; border-radius: 8px; padding: 10px 12px;
+    margin-bottom: 6px; font-size: 15px; color: #1c1c1e;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .lb-row.me { background: #e5f1ff; }
+  .lb-row.me .lb-name { color: #007aff; font-weight: 700; }
+  .lb-rank { width: 34px; text-align: center; font-weight: 700; color: #8e8e93; flex-shrink: 0; }
+  .lb-name { flex: 1; font-weight: 600; }
+  .lb-count { font-weight: 700; font-variant-numeric: tabular-nums; }
+
+  .sync-status { text-align: center; font-size: 11px; color: #aeaeb2; padding: 4px 0 8px; }
+
+  /* 하단 탭 바 */
+  .tabbar {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 50;
+    display: flex; background: rgba(255,255,255,0.96);
+    border-top: 1px solid #d1d1d6;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  .tab-btn {
+    flex: 1; background: none; border: none; cursor: pointer;
+    padding: 8px 0 6px; font-size: 11px; font-weight: 600; color: #8e8e93;
+  }
+  .tab-btn .tab-icon { display: block; font-size: 22px; line-height: 1.2; filter: grayscale(1); opacity: 0.6; }
+  .tab-btn.active { color: #007aff; }
+  .tab-btn.active .tab-icon { filter: none; opacity: 1; }
+
+  /* 이름 선택 창 */
+  .modal-bg {
+    position: fixed; inset: 0; z-index: 100; background: rgba(0,0,0,0.4);
+    display: none; align-items: center; justify-content: center; padding: 24px;
+  }
+  .modal-bg.open { display: flex; }
+  .modal {
+    background: white; border-radius: 16px; padding: 20px 16px 16px;
+    width: 100%; max-width: 340px; max-height: 80vh; overflow-y: auto;
+  }
+  .modal h2 { font-size: 18px; font-weight: 700; color: #1c1c1e; text-align: center; }
+  .modal p { font-size: 13px; color: #8e8e93; text-align: center; margin: 6px 0 14px; }
+  .name-option {
+    display: block; width: 100%; height: 46px; margin-bottom: 8px;
+    border-radius: 10px; border: 1.5px solid #d1d1d6; background: #f9f9f9;
+    font-size: 16px; font-weight: 600; color: #1c1c1e; cursor: pointer;
+  }
+  .name-option.selected { background: #007aff; border-color: #007aff; color: white; }
+  .name-option:active { opacity: 0.7; }
+  .modal-close {
+    display: block; width: 100%; background: none; border: none; color: #007aff;
+    font-size: 15px; font-weight: 500; padding: 8px 0 2px; cursor: pointer;
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>💪 일리노이 CBMC<br>장수 만세 프로그램</h1>
+  <div class="date" id="today-date"></div>
+  <button class="name-chip" id="name-chip" onclick="openNamePicker()">👤 이름 선택</button>
+</div>
+
+<!-- 메인 탭 -->
+<div id="tab-main">
+  <div class="card" id="card-pushup">
+    <div class="exercise-title">🤲 팔굽혀 펴기</div>
+    <div class="controls">
+      <input class="count-input" type="number" id="val-pushup" value="20" min="1" max="999" inputmode="numeric">
+      <button class="done-btn" onclick="record()">완료 ✓</button>
+      <div class="stats">
+        <div class="stats-label">오늘 총 개수</div>
+        <div class="stats-value" id="total-pushup">0개</div>
+        <div class="stats-sub" id="sets-pushup">완료 0회</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="summary-card">
+    <div class="summary-title">📊 오늘 총계</div>
+    <div class="summary-grid">
+      <div class="summary-item" id="summary-item"><div class="num" id="sum-pushup">0</div><div class="lbl" id="sum-label">팔굽혀 펴기</div></div>
+    </div>
+  </div>
+
+  <div class="chart-card">
+    <div class="chart-header">
+      <span class="chart-title">📈 하루 개수 추이</span>
+      <div class="range-toggle">
+        <button class="range-btn active" id="btn-thismonth" onclick="setRange('thismonth')">이번 달</button>
+        <button class="range-btn" id="btn-30days" onclick="setRange('30days')">최근 30일</button>
+      </div>
+    </div>
+    <div class="chart-checkboxes" id="chart-checkboxes"></div>
+    <div class="chart-wrap">
+      <canvas id="chartCanvas"></canvas>
+      <div class="chart-empty" id="chart-empty" style="display:none">기록이 없어요</div>
+    </div>
+  </div>
+</div>
+
+<!-- 리더보드 탭 -->
+<div id="tab-board" style="display:none">
+  <div class="card">
+    <div class="log-title">🏆 리더보드</div>
+    <div class="range-toggle">
+      <button class="range-btn active" id="lb-month" onclick="setPeriod('month')">이번 달</button>
+      <button class="range-btn" id="lb-all" onclick="setPeriod('all')">전체</button>
+      <button class="range-btn" id="lb-lastmonth" onclick="setPeriod('lastmonth')">지난달</button>
+      <button class="range-btn" id="lb-30days" onclick="setPeriod('30days')">최근 30일</button>
+      <button class="range-btn" id="lb-custom" onclick="setPeriod('custom')">직접 선택</button>
+    </div>
+    <div id="lb-custom-inputs" style="display:none; gap:8px; align-items:center; margin-top:10px;">
+      <input type="date" class="date-input" id="lb-start" onchange="onCustomPeriodChange()">
+      <span style="color:#8e8e93; font-size:13px;">~</span>
+      <input type="date" class="date-input" id="lb-end" onchange="onCustomPeriodChange()">
+    </div>
+    <div class="lb-period" id="lb-period"></div>
+    <div id="lb-list"></div>
+  </div>
+
+  <div class="card">
+    <div class="log-section">
+      <div class="log-title">🕐 기록 보기</div>
+      <div id="log-filter" style="margin-bottom:10px;">
+        <div style="display:flex; gap:6px; margin-bottom:8px; flex-wrap:wrap;">
+          <button class="range-btn active" id="filter-range" onclick="setLogFilter('range')">날짜 선택</button>
+          <button class="range-btn" id="filter-all" onclick="setLogFilter('all')">전체 보기</button>
+        </div>
+        <div id="log-date-inputs" style="display:flex; gap:8px; align-items:center;">
+          <input type="date" class="date-input" id="log-start" onchange="onLogRangeChange()">
+          <span style="color:#8e8e93; font-size:13px;">~</span>
+          <input type="date" class="date-input" id="log-end" onchange="onLogRangeChange()">
+        </div>
+      </div>
+      <div id="log-list"></div>
+    </div>
+  </div>
+</div>
+
+<div class="sync-status" id="sync-status"></div>
+
+<div class="tabbar">
+  <button class="tab-btn active" id="tabbtn-main" onclick="showTab('main')"><span class="tab-icon">💪</span>메인</button>
+  <button class="tab-btn" id="tabbtn-board" onclick="showTab('board')"><span class="tab-icon">🏆</span>리더보드</button>
+</div>
+
+<div class="modal-bg" id="name-modal">
+  <div class="modal">
+    <h2>이름을 선택해 주세요</h2>
+    <p>한 번 고르면 이 폰에 저장됩니다. 나중에 위쪽 이름 버튼으로 바꿀 수 있어요.</p>
+    <div id="name-options"></div>
+    <button class="modal-close" id="name-modal-close" onclick="closeNamePicker()">닫기</button>
+  </div>
+</div>
+
+<script>
+// ===== 설정 =====
+// 구글 시트 연동 (Apps Script 웹 앱). 시트가 기록의 원본이며, 실패해도 앱 사용에는 영향 없음
+const SHEET_URL = 'https://script.google.com/macros/s/AKfycbzWfQP9IH6O_2NNyLfedFncUS3clqmlGTNYngVud-mmLQp_PFYLVWO6lpgO29020uZO/exec';
+// 저장 키: 같은 github.io 주소의 다른 앱과 겹치지 않도록 이 앱 전용. 한 번 정하면 바꾸지 말 것
+const STORAGE_KEY = 'pushup_log_v1';          // 이 폰에서 입력한 내 기록의 사본
+const PENDING_DEL_KEY = 'pushup_pending_del'; // 전송에 실패한 삭제 요청 대기열
+const NAME_KEY = 'pushup_my_name';            // 내 이름
+const CACHE_KEY = 'pushup_cache_v1';          // 마지막으로 서버에서 불러온 결과
+// 시트에서 이름 목록을 불러오기 전에 쓰는 처음 목록 (이후에는 시트의 리더보드 탭 A열이 기준)
+const DEFAULT_NAMES = ['강상원', '김병수', '박상화', '박장만', '윤유신', '이동렬', '이수재', '이준석'];
+const PERSON_COLORS = ['#007aff', '#ff3b30', '#34c759', '#ff9500', '#af52de', '#00c7be', '#ff2d55', '#a2845e', '#5856d6', '#ffcc00', '#636366', '#30b0c7'];
+
+let currentRange = 'thismonth';
+let currentPeriod = 'month';
+let logFilter = 'range'; // 'range' or 'all'
+let currentTab = 'main';
+const uncheckedNames = new Set();
+let logView = [];
+
+// ===== 날짜/시간 =====
+function dateStr(d) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+function today() { return dateStr(new Date()); }
+function parseDate(s) { const p = s.split('-').map(Number); return new Date(p[0], p[1] - 1, p[2]); }
+function addDays(s, n) { const d = parseDate(s); d.setDate(d.getDate() + n); return dateStr(d); }
+function validDate(d) { return /^\d{4}-\d{2}-\d{2}$/.test(d); }
+function fmt(d) {
+  const parts = new Intl.DateTimeFormat('ko-KR', { year:'numeric', month:'long', day:'numeric', weekday:'short' }).formatToParts(d);
+  const map = Object.fromEntries(parts.map(p => [p.type, p.value]));
+  return `${map.year}년 ${map.month} ${map.day} ${map.weekday}요일`;
+}
+function timeStr() {
+  return new Date().toLocaleTimeString('ko-KR', { hour:'2-digit', minute:'2-digit', second:'2-digit' });
+}
+function esc(s) {
+  return String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
+}
+// 이름은 항상 한글 가나다 순서로 나열
+function sortKo(arr) { return arr.slice().sort((a, b) => a.localeCompare(b, 'ko')); }
+
+// ===== 폰 저장소 =====
+function loadAll() {
+  try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}'); } catch(e) { return {}; }
+}
+function saveAll(data) { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); }
+function loadCache() {
+  try { return JSON.parse(localStorage.getItem(CACHE_KEY) || '{}'); } catch(e) { return {}; }
+}
+function saveCache(c) { try { localStorage.setItem(CACHE_KEY, JSON.stringify(c)); } catch(e) {} }
+function getMyName() { try { return localStorage.getItem(NAME_KEY) || ''; } catch(e) { return ''; } }
+function getNames() {
+  const c = loadCache();
+  const names = (Array.isArray(c.names) && c.names.length) ? c.names : DEFAULT_NAMES;
+  return sortKo(names);
+}
+function colorOf(name) {
+  const i = getNames().indexOf(name);
+  return PERSON_COLORS[(i < 0 ? 0 : i) % PERSON_COLORS.length];
+}
+function myTodayLogs() {
+  const me = getMyName();
+  return (loadAll()[today()] || []).filter(l => l.name === me);
+}
+
+// ===== 시트 전송 =====
+const inFlight = new Set();
+const entryKey = l => l.name + '|' + l.count + '|' + l.time;
+
+// 전송 성공 여부를 true/false로 돌려줌 (인터넷이 없으면 false)
+function postToSheet(payload) {
+  try {
+    return fetch(SHEET_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(payload) })
+      .then(() => true).catch(() => false);
+  } catch (e) { return Promise.resolve(false); }
+}
+function markSent(date, entry) {
+  const all = loadAll();
+  const t = (all[date] || []).find(l => l.ts === entry.ts && entryKey(l) === entryKey(entry));
+  if (t) { t.sent = true; saveAll(all); }
+}
+// 기록을 시트로 전송하고, 성공하면 전송 완료 표시를 남김. 성공 여부를 돌려줌
+function sendToSheet(date, entry) {
+  const k = date + '|' + entryKey(entry) + '|' + entry.ts;
+  if (inFlight.has(k)) return Promise.resolve(false);
+  inFlight.add(k);
+  return postToSheet({ date, name: entry.name, count: entry.count, time: entry.time })
+    .then(ok => { if (ok) markSent(date, entry); return ok; })
+    .finally(() => inFlight.delete(k));
+}
+function loadPendingDeletes() {
+  try { return JSON.parse(localStorage.getItem(PENDING_DEL_KEY) || '[]'); } catch (e) { return []; }
+}
+function savePendingDeletes(a) { localStorage.setItem(PENDING_DEL_KEY, JSON.stringify(a)); }
+// 삭제가 전송에 실패하면 대기열에 두었다가 다음 동기화 때 다시 보냄
+function sendDeleteToSheet(date, entry) {
+  const payload = { action: 'delete', date, name: entry.name, count: entry.count, time: entry.time };
+  return postToSheet(payload).then(ok => {
+    if (!ok) { const q = loadPendingDeletes(); q.push(payload); savePendingDeletes(q); }
+    return ok;
+  });
+}
+async function flushPendingDeletes() {
+  const q = loadPendingDeletes();
+  if (!q.length) return;
+  const left = [];
+  for (const p of q) { if (!(await postToSheet(p))) left.push(p); }
+  savePendingDeletes(left);
+}
+function isPendingDelete(date, e) {
+  return loadPendingDeletes().some(p => p.date === date && p.name === e.name && Number(p.count) === Number(e.count) && p.time === e.time);
+}
+
+// ===== 서버에서 읽기 =====
+async function getJSON(params) {
+  const qs = Object.keys(params).filter(k => params[k] !== '' && params[k] != null)
+    .map(k => k + '=' + encodeURIComponent(params[k])).join('&');
+  const res = await fetch(SHEET_URL + '?' + qs + '&t=' + Date.now());
+  const data = await res.json();
+  if (!data || data.error) throw new Error(data && data.error);
+  return data;
+}
+
+// 폰의 내 기록과 시트 기록을 합침 (시트가 원본).
+// - 시트에 있는 내 기록은 그대로 가져옴
+// - 폰에만 있고 아직 전송 안 된 기록은 남겨 두고 다시 올림
+// - 전송했는데 시트에 없는 기록은 누가 지운 것이므로 폰에서도 없앰 (방금 보낸 것은 2분간 유지)
+function mergeMine(local, rows, me, from, now) {
+  const sheetKeys = {};
+  const mineByDate = {};
+  rows.forEach(r => {
+    if (!validDate(r.date)) return;
+    (sheetKeys[r.date] = sheetKeys[r.date] || new Set()).add(entryKey(r));
+    if (r.name === me) (mineByDate[r.date] = mineByDate[r.date] || []).push({ name: r.name, count: Number(r.count), time: r.time, ts: 0, sent: true });
+  });
+  const merged = {};
+  const uploads = [];
+  new Set([...Object.keys(local), ...Object.keys(mineByDate)]).forEach(date => {
+    if (!validDate(date) || date < from) return;
+    const localArr = local[date] || [];
+    const keys = sheetKeys[date] || new Set();
+    const localByKey = {};
+    localArr.forEach(l => { localByKey[entryKey(l)] = l; });
+    const fromSheet = (mineByDate[date] || []).map(e => {
+      const l = localByKey[entryKey(e)];
+      if (l) { l.sent = true; return l; }
+      return e;
+    });
+    const localOnly = localArr.filter(l => !keys.has(entryKey(l)) && (!l.sent || (l.ts && now - l.ts < 120000)));
+    localOnly.forEach(l => { if (!l.sent && l.ts) uploads.push([date, l]); });
+    const arr = fromSheet.concat(localOnly);
+    if (arr.length) merged[date] = arr;
+  });
+  return { merged, uploads };
+}
+
+async function syncMine() {
+  try {
+    const local = loadAll();
+    let from = today();
+    Object.keys(local).forEach(d => {
+      if (validDate(d) && d < from && (local[d] || []).some(l => !l.sent)) from = d;
+    });
+    const data = await getJSON({ action: 'log', from });
+    if (!Array.isArray(data.rows)) return false;
+    // 불러오는 동안 새로 입력한 기록이 사라지지 않도록, 합치기 직전에 폰 기록을 다시 읽음
+    const r = mergeMine(loadAll(), data.rows, getMyName(), from, Date.now());
+    saveAll(r.merged);
+    renderStats();
+    if (r.uploads.length) {
+      Promise.all(r.uploads.map(([d, l]) => sendToSheet(d, l))).then(oks => { if (oks.some(Boolean)) refreshAll(true); });
+    }
+    return true;
+  } catch (e) { return false; }
+}
+
+// 그래프용: 이번 달과 최근 30일을 모두 덮는 기간의 이름별 하루 합계
+function dailyFetchRange() {
+  const now = new Date();
+  const first = dateStr(new Date(now.getFullYear(), now.getMonth(), 1));
+  const last = dateStr(new Date(now.getFullYear(), now.getMonth() + 1, 0));
+  const d30 = addDays(today(), -29);
+  return { from: d30 < first ? d30 : first, to: last };
+}
+async function loadDaily() {
+  try {
+    const startedAt = Date.now();
+    const r = dailyFetchRange();
+    const data = await getJSON({ action: 'daily', from: r.from, to: r.to });
+    const c = loadCache();
+    if (Array.isArray(data.names) && data.names.length) c.names = data.names;
+    c.daily = { from: r.from, to: r.to, data: data.daily || {}, startedAt };
+    saveCache(c);
+    renderNameUI(); renderChart();
+    return true;
+  } catch (e) { return false; }
+}
+
+// 리더보드 기간 계산. {from, to} 를 돌려주며 전체는 둘 다 ''. 직접 선택이 덜 채워졌으면 null
+function periodRange(key, t, cs, ce) {
+  const d = parseDate(t);
+  if (key === 'month') return { from: dateStr(new Date(d.getFullYear(), d.getMonth(), 1)), to: t };
+  if (key === 'all') return { from: '', to: '' };
+  if (key === 'lastmonth') return {
+    from: dateStr(new Date(d.getFullYear(), d.getMonth() - 1, 1)),
+    to: dateStr(new Date(d.getFullYear(), d.getMonth(), 0))
+  };
+  if (key === '30days') return { from: addDays(t, -29), to: t };
+  if (key === 'custom') {
+    if (!validDate(cs || '') || !validDate(ce || '')) return null;
+    return cs <= ce ? { from: cs, to: ce } : { from: ce, to: cs };
+  }
+  return null;
+}
+function currentPeriodRange() {
+  return periodRange(currentPeriod, today(),
+    document.getElementById('lb-start').value, document.getElementById('lb-end').value);
+}
+function periodKey(r) { return r.from + '~' + r.to; }
+
+async function loadLeaderboard() {
+  const r = currentPeriodRange();
+  if (!r) return true;
+  try {
+    const startedAt = Date.now();
+    const data = await getJSON({ action: 'leaderboard', from: r.from, to: r.to });
+    const c = loadCache();
+    if (Array.isArray(data.names) && data.names.length) c.names = data.names;
+    // 기간별로 마지막 결과를 보관 (너무 많아지지 않게 최근 12개만)
+    const lb = c.lb || {};
+    lb[periodKey(r)] = { totals: data.totals || {}, startedAt };
+    const keys = Object.keys(lb).sort((a, b) => lb[b].startedAt - lb[a].startedAt);
+    keys.slice(12).forEach(k => delete lb[k]);
+    c.lb = lb;
+    saveCache(c);
+    renderNameUI(); renderLeaderboard();
+    return true;
+  } catch (e) { return false; }
+}
+
+function currentLogRange() {
+  if (logFilter === 'all') return { from: '', to: '' };
+  let s = document.getElementById('log-start').value, e = document.getElementById('log-end').value;
+  if (s && e && s > e) { const x = s; s = e; e = x; }
+  return { from: s || '', to: e || '' };
+}
+async function loadLog() {
+  const r = currentLogRange();
+  const key = logFilter + '|' + periodKey(r);
+  try {
+    const startedAt = Date.now();
+    const data = await getJSON({ action: 'log', from: r.from, to: r.to });
+    if (!Array.isArray(data.rows)) return false;
+    const now = currentLogRange();
+    if (key !== logFilter + '|' + periodKey(now)) return true; // 그 사이 범위가 바뀌었으면 버림
+    const c = loadCache();
+    c.log = { key, rows: data.rows.filter(x => validDate(x.date)), startedAt };
+    saveCache(c);
+    renderLog();
+    return true;
+  } catch (e) { return false; }
+}
+
+// 앱이 열릴 때와 홈 화면 앱으로 돌아올 때 서버에서 새로 불러옴
+let lastSync = 0, refreshing = false, refreshQueued = false;
+async function refreshAll(force) {
+  if (refreshing) { if (force) refreshQueued = true; return; }
+  if (!force && Date.now() - lastSync < 5000) return;
+  lastSync = Date.now();
+  refreshing = true;
+  setStatus('불러오는 중…');
+  try {
+    await flushPendingDeletes();
+    const oks = await Promise.all([syncMine(), loadDaily(), loadLeaderboard(), loadLog()]);
+    if (oks.every(Boolean)) {
+      const c = loadCache(); c.updatedAt = Date.now(); saveCache(c);
+      setStatus('');
+    } else {
+      setStatus('offline');
+    }
+  } finally {
+    refreshing = false;
+    if (refreshQueued) { refreshQueued = false; refreshAll(true); }
+  }
+}
+function setStatus(s) {
+  const el = document.getElementById('sync-status');
+  const c = loadCache();
+  const last = c.updatedAt ? new Date(c.updatedAt).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' }) : '';
+  const lastDay = c.updatedAt ? dateStr(new Date(c.updatedAt)) : '';
+  const when = last ? (lastDay === today() ? last : lastDay + ' ' + last) : '';
+  if (s === 'offline') el.textContent = '인터넷 연결 안 됨' + (when ? ' · 마지막 업데이트 ' + when : '');
+  else if (s) el.textContent = s;
+  else el.textContent = when ? '마지막 업데이트 ' + when : '';
+}
+
+// 아직 서버 결과에 들어 있지 않은 내 폰 기록 (전송 대기 중이거나, 불러오기 시작 후에 입력한 것)
+function overlayEntries(startedAt) {
+  const all = loadAll();
+  const out = [];
+  Object.keys(all).forEach(date => {
+    (all[date] || []).forEach(l => {
+      if (!l.sent || (l.ts && l.ts > (startedAt || 0))) out.push({ date, ...l });
+    });
+  });
+  return out;
+}
+
+// ===== 입력 =====
+function record() {
+  const me = getMyName();
+  if (!me) { openNamePicker(); return; }
+  const val = parseInt(document.getElementById('val-pushup').value, 10);
+  if (!val || val < 1) { alert('횟수를 1 이상으로 입력해 주세요.'); return; }
+  const all = loadAll();
+  const t = today();
+  if (!all[t]) all[t] = [];
+  const entry = { name: me, count: val, time: timeStr(), ts: Date.now() };
+  all[t].push(entry);
+  saveAll(all);
+  renderAll(); flashCard();
+  sendToSheet(t, entry).then(ok => { if (ok) refreshAll(true); else setStatus('offline'); });
+}
+
+function flashCard() {
+  const card = document.getElementById('card-pushup');
+  card.style.transition = 'background 0.1s';
+  card.style.background = '#e8fbe8';
+  setTimeout(() => { card.style.background = 'white'; }, 600);
+}
+
+function getScaleColor(total) {
+  // 0~300개, 30개마다 1단계 (0~10단계)
+  const step = Math.min(Math.floor(total / 30), 10);
+  const ratio = step / 10; // 0.0 ~ 1.0
+  // 빨간(255,59,48) → 주황 → 그린(52,199,89)
+  const r = Math.round(255 + (52  - 255) * ratio);
+  const g = Math.round(59  + (199 - 59)  * ratio);
+  const b = Math.round(48  + (89  - 48)  * ratio);
+  return `rgb(${r},${g},${b})`;
+}
+
+function renderStats() {
+  const mine = myTodayLogs();
+  const total = mine.reduce((s, l) => s + l.count, 0);
+  document.getElementById('total-pushup').textContent = total + '개';
+  document.getElementById('sets-pushup').textContent = '완료 ' + mine.length + '회';
+  document.getElementById('sum-pushup').textContent = total;
+  document.getElementById('sum-label').textContent = getMyName() || '팔굽혀 펴기';
+  document.getElementById('summary-item').style.background = getScaleColor(total);
+}
+
+// ===== 이름 =====
+let lastNamesSig = '';
+function renderNameUI() {
+  const me = getMyName();
+  document.getElementById('name-chip').textContent = me ? '👤 ' + me + ' ▾' : '👤 이름 선택';
+  const names = getNames();
+  const sig = names.join('|') + '#' + me;
+  if (sig === lastNamesSig) return;
+  lastNamesSig = sig;
+  document.getElementById('name-options').innerHTML = names.map((n, i) =>
+    `<button class="name-option${n === me ? ' selected' : ''}" onclick="pickName(${i})">${esc(n)}</button>`).join('');
+  document.getElementById('chart-checkboxes').innerHTML = names.map((n, i) =>
+    `<label class="chart-checkbox-label" style="--cb-color:${colorOf(n)}">
+      <input type="checkbox" ${uncheckedNames.has(n) ? '' : 'checked'} onchange="toggleName(${i}, this.checked)"><span class="cb-dot"></span>${esc(n)}
+    </label>`).join('');
+}
+function openNamePicker() {
+  document.getElementById('name-modal-close').style.display = getMyName() ? 'block' : 'none';
+  document.getElementById('name-modal').classList.add('open');
+}
+function closeNamePicker() { document.getElementById('name-modal').classList.remove('open'); }
+function pickName(i) {
+  const n = getNames()[i];
+  if (!n) return;
+  try { localStorage.setItem(NAME_KEY, n); } catch (e) {}
+  closeNamePicker();
+  renderAll();
+  refreshAll(true);
+}
+function toggleName(i, on) {
+  const n = getNames()[i];
+  if (!n) return;
+  if (on) uncheckedNames.delete(n); else uncheckedNames.add(n);
+  renderChart();
+}
+
+// ===== 그래프 =====
+function setRange(range) {
+  currentRange = range;
+  document.getElementById('btn-thismonth').classList.toggle('active', range === 'thismonth');
+  document.getElementById('btn-30days').classList.toggle('active', range === '30days');
+  renderChart();
+}
+
+// 날짜 범위 생성
+function getDateRange() {
+  const now = new Date();
+  const dates = [];
+  if (currentRange === 'thismonth') {
+    const year = now.getFullYear(), month = now.getMonth();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    for (let d = 1; d <= daysInMonth; d++) dates.push(dateStr(new Date(year, month, d)));
+  } else {
+    // 최근 30일
+    for (let i = 29; i >= 0; i--) dates.push(addDays(dateStr(now), -i));
+  }
+  return dates;
+}
+
+// 이름별 하루 합계 = 서버 결과 + 아직 서버 결과에 없는 내 폰 기록
+function dailyTotals() {
+  const c = loadCache();
+  const src = (c.daily && c.daily.data) || {};
+  const out = {};
+  Object.keys(src).forEach(n => { out[n] = Object.assign({}, src[n]); });
+  overlayEntries(c.daily ? c.daily.startedAt : 0).forEach(l => {
+    if (!out[l.name]) out[l.name] = {};
+    out[l.name][l.date] = (out[l.name][l.date] || 0) + l.count;
+  });
+  return out;
+}
+
+function renderChart() {
+  const canvas = document.getElementById('chartCanvas');
+  const emptyEl = document.getElementById('chart-empty');
+  if (currentTab !== 'main') return;
+  const dates = getDateRange();
+  const names = getNames().filter(n => !uncheckedNames.has(n));
+  const totals = dailyTotals();
+  const t = today();
+  // 오늘 이후의 날짜는 선을 그리지 않음
+  let lastIdx = dates.length - 1;
+  while (lastIdx > 0 && dates[lastIdx] > t) lastIdx--;
+
+  const series = {};
+  names.forEach(n => { series[n] = dates.slice(0, lastIdx + 1).map(d => (totals[n] && totals[n][d]) || 0); });
+
+  const hasData = names.some(n => series[n].some(v => v > 0));
+  if (!hasData) {
+    canvas.style.display = 'none';
+    emptyEl.style.display = 'block';
+    return;
+  }
+  canvas.style.display = 'block';
+  emptyEl.style.display = 'none';
+
+  // 캔버스 크기
+  const dpr = window.devicePixelRatio || 1;
+  const W = canvas.parentElement.clientWidth || 320;
+  const H = 200;
+  canvas.width = W * dpr;
+  canvas.height = H * dpr;
+  canvas.style.width = W + 'px';
+  canvas.style.height = H + 'px';
+
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+  ctx.clearRect(0, 0, W, H);
+
+  const PAD_LEFT = 36, PAD_RIGHT = 12, PAD_TOP = 16, PAD_BOTTOM = 28;
+  const chartW = W - PAD_LEFT - PAD_RIGHT;
+  const chartH = H - PAD_TOP - PAD_BOTTOM;
+
+  // Y 최대값
+  const allVals = names.flatMap(n => series[n]);
+  const maxVal = Math.max(...allVals, 1);
+  const yMax = Math.ceil(maxVal / 10) * 10 || 10;
+
+  // 그리드 & Y축
+  ctx.strokeStyle = '#e5e5ea';
+  ctx.lineWidth = 1;
+  ctx.fillStyle = '#8e8e93';
+  ctx.font = `${10 * 1}px -apple-system, sans-serif`;
+  ctx.textAlign = 'right';
+  const yTicks = 4;
+  for (let i = 0; i <= yTicks; i++) {
+    const val = Math.round(yMax * i / yTicks);
+    const y = PAD_TOP + chartH - (chartH * i / yTicks);
+    ctx.beginPath(); ctx.moveTo(PAD_LEFT, y); ctx.lineTo(PAD_LEFT + chartW, y); ctx.stroke();
+    ctx.fillText(val, PAD_LEFT - 4, y + 3.5);
+  }
+
+  // X축 레이블 (날짜 수에 따라 간격 조절)
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#8e8e93';
+  const n = dates.length;
+  const maxLabels = Math.floor(chartW / 22);
+  const step = Math.ceil(n / maxLabels);
+  dates.forEach((date, i) => {
+    if (i % step !== 0 && i !== n - 1) return;
+    const x = PAD_LEFT + (i / (n - 1)) * chartW;
+    const day = parseInt(date.split('-')[2], 10);
+    ctx.fillText(day, x, H - PAD_BOTTOM + 14);
+  });
+
+  // X축 선
+  ctx.strokeStyle = '#d1d1d6'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(PAD_LEFT, PAD_TOP + chartH); ctx.lineTo(PAD_LEFT + chartW, PAD_TOP + chartH); ctx.stroke();
+
+  // 선 그래프 (사람마다 다른 색)
+  names.forEach(name => {
+    const data = series[name];
+    const color = colorOf(name);
+
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 2.5;
+    ctx.lineJoin = 'round';
+    ctx.lineCap = 'round';
+
+    ctx.beginPath();
+    let started = false;
+    data.forEach((val, i) => {
+      const x = PAD_LEFT + (n === 1 ? chartW / 2 : (i / (n - 1)) * chartW);
+      const y = PAD_TOP + chartH - (val / yMax) * chartH;
+      if (!started) { ctx.moveTo(x, y); started = true; }
+      else ctx.lineTo(x, y);
+    });
+    ctx.stroke();
+
+    // 데이터 포인트 (값이 0 초과인 날만)
+    data.forEach((val, i) => {
+      if (val === 0) return;
+      const x = PAD_LEFT + (n === 1 ? chartW / 2 : (i / (n - 1)) * chartW);
+      const y = PAD_TOP + chartH - (val / yMax) * chartH;
+      ctx.beginPath();
+      ctx.arc(x, y, 3.5, 0, Math.PI * 2);
+      ctx.fillStyle = color;
+      ctx.fill();
+    });
+  });
+}
+
+// ===== 리더보드 =====
+// 개수가 많은 순서. 개수가 같으면 같은 순위, 그 안에서는 이름 가나다순. 0개인 사람도 포함
+function buildRanking(names, totals) {
+  const all = names.slice();
+  Object.keys(totals).forEach(n => { if (all.indexOf(n) === -1) all.push(n); });
+  const list = all.map(n => ({ name: n, count: Number(totals[n]) || 0 }));
+  list.sort((a, b) => b.count - a.count || a.name.localeCompare(b.name, 'ko'));
+  list.forEach((x, i) => { x.rank = (i > 0 && list[i - 1].count === x.count) ? list[i - 1].rank : i + 1; });
+  return list;
+}
+
+function setPeriod(p) {
+  currentPeriod = p;
+  ['month', 'all', 'lastmonth', '30days', 'custom'].forEach(k =>
+    document.getElementById('lb-' + k).classList.toggle('active', k === p));
+  document.getElementById('lb-custom-inputs').style.display = p === 'custom' ? 'flex' : 'none';
+  if (p === 'custom') {
+    const s = document.getElementById('lb-start'), e = document.getElementById('lb-end');
+    if (!s.value) s.value = periodRange('month', today()).from;
+    if (!e.value) e.value = today();
+  }
+  renderLeaderboard();
+  loadLeaderboard().then(ok => { if (!ok) setStatus('offline'); });
+}
+function onCustomPeriodChange() {
+  renderLeaderboard();
+  loadLeaderboard().then(ok => { if (!ok) setStatus('offline'); });
+}
+
+function renderLeaderboard() {
+  const el = document.getElementById('lb-list');
+  const pEl = document.getElementById('lb-period');
+  const r = currentPeriodRange();
+  if (!r) {
+    pEl.textContent = '';
+    el.innerHTML = '<div class="no-log">시작일과 종료일을 선택해 주세요</div>';
+    return;
+  }
+  pEl.textContent = (r.from || r.to) ? r.from + ' ~ ' + r.to : '전체 기간';
+  const c = loadCache();
+  const hit = c.lb && c.lb[periodKey(r)];
+  if (!hit) {
+    el.innerHTML = '<div class="no-log">불러오는 중… (인터넷 연결이 필요해요)</div>';
+    return;
+  }
+  const totals = Object.assign({}, hit.totals);
+  overlayEntries(hit.startedAt).forEach(l => {
+    if (r.from && l.date < r.from) return;
+    if (r.to && l.date > r.to) return;
+    totals[l.name] = (totals[l.name] || 0) + l.count;
+  });
+  const me = getMyName();
+  const medals = { 1: '🥇', 2: '🥈', 3: '🥉' };
+  el.innerHTML = buildRanking(getNames(), totals).map(x =>
+    `<div class="lb-row${x.name === me ? ' me' : ''}">
+      <span class="lb-rank">${x.count > 0 && medals[x.rank] ? medals[x.rank] : x.rank}</span>
+      <span class="lb-name">${esc(x.name)}</span>
+      <span class="lb-count">${x.count.toLocaleString('ko-KR')}개</span>
+    </div>`).join('');
+}
+
+// ===== 기록 보기 (모든 사람의 기록) =====
+function setLogFilter(filter) {
+  logFilter = filter;
+  document.getElementById('filter-range').classList.toggle('active', filter === 'range');
+  document.getElementById('filter-all').classList.toggle('active', filter === 'all');
+  document.getElementById('log-date-inputs').style.display = filter === 'range' ? 'flex' : 'none';
+  onLogRangeChange();
+}
+function onLogRangeChange() {
+  renderLog();
+  loadLog().then(ok => { if (!ok) setStatus('offline'); });
+}
+
+function renderLog() {
+  const el = document.getElementById('log-list');
+  const r = currentLogRange();
+  const key = logFilter + '|' + periodKey(r);
+  const c = loadCache();
+  const hit = (c.log && c.log.key === key) ? c.log : null;
+
+  const entries = [];
+  const seen = new Set();
+  if (hit) hit.rows.forEach(x => {
+    if (isPendingDelete(x.date, x)) return;
+    seen.add(x.date + '|' + entryKey(x));
+    entries.push({ date: x.date, name: x.name, count: Number(x.count), time: x.time, pending: false });
+  });
+  // 아직 시트에 올라가지 않은 이 폰의 기록도 함께 보여 줌
+  overlayEntries(hit ? hit.startedAt : 0).forEach(l => {
+    if (r.from && l.date < r.from) return;
+    if (r.to && l.date > r.to) return;
+    if (seen.has(l.date + '|' + entryKey(l))) return;
+    entries.push({ date: l.date, name: l.name, count: l.count, time: l.time, pending: !l.sent });
+  });
+
+  if (entries.length === 0) {
+    el.innerHTML = `<div class="no-log">${hit ? '해당 기간에 기록이 없어요' : '불러오는 중… (인터넷 연결이 필요해요)'}</div>`;
+    logView = [];
+    return;
+  }
+
+  // 날짜별 그룹핑 (최근 날짜가 위, 같은 날짜 안에서는 나중 기록이 위)
+  const grouped = {};
+  entries.forEach(l => { (grouped[l.date] = grouped[l.date] || []).push(l); });
+  logView = [];
+  el.innerHTML = Object.keys(grouped).sort().reverse().map(date => {
+    const itemsHTML = grouped[date].slice().reverse().map(l => {
+      const i = logView.push(l) - 1;
+      return `<div class="log-item">
+        <div class="log-left"><span><b>${esc(l.name)}</b> ${l.count}개</span><span class="log-time">${esc(l.time)}</span>${l.pending ? '<span class="log-pending">전송 대기</span>' : ''}</div>
+        <button class="log-delete-btn" onclick="deleteLogAt(${i})">🗑</button>
+      </div>`;
+    }).join('');
+    return `<div style="margin-bottom:10px;">
+      <div style="font-size:12px; font-weight:600; color:#8e8e93; margin-bottom:4px;">${date}</div>
+      ${itemsHTML}
+    </div>`;
+  }).join('');
+}
+
+function deleteLogAt(i) {
+  const l = logView[i];
+  if (!l) return;
+  if (!confirm(`"${l.name} ${l.count}개" 기록을 삭제할까요?`)) return;
+  // 이 폰의 사본에서 제거
+  const all = loadAll();
+  if (all[l.date]) {
+    const idx = all[l.date].findIndex(x => entryKey(x) === entryKey(l));
+    if (idx >= 0) all[l.date].splice(idx, 1);
+    if (all[l.date].length === 0) delete all[l.date];
+    saveAll(all);
+  }
+  // 마지막으로 불러온 기록 목록에서도 제거
+  const c = loadCache();
+  if (c.log && Array.isArray(c.log.rows)) {
+    const idx = c.log.rows.findIndex(x => x.date === l.date && entryKey(x) === entryKey(l));
+    if (idx >= 0) { c.log.rows.splice(idx, 1); saveCache(c); }
+  }
+  renderAll();
+  if (l.pending) return; // 아직 시트에 올라가지 않은 기록은 폰에서만 지우면 됨
+  sendDeleteToSheet(l.date, l).then(ok => { if (ok) refreshAll(true); else setStatus('offline'); });
+}
+
+// ===== 화면 =====
+function showTab(tab) {
+  currentTab = tab;
+  document.getElementById('tab-main').style.display = tab === 'main' ? 'block' : 'none';
+  document.getElementById('tab-board').style.display = tab === 'board' ? 'block' : 'none';
+  document.getElementById('tabbtn-main').classList.toggle('active', tab === 'main');
+  document.getElementById('tabbtn-board').classList.toggle('active', tab === 'board');
+  window.scrollTo(0, 0);
+  renderAll();
+  refreshAll(false);
+}
+function renderAll() {
+  renderNameUI(); renderStats(); renderChart(); renderLeaderboard(); renderLog();
+}
+
+function init() {
+  document.getElementById('today-date').textContent = fmt(new Date());
+  // 기록 보기의 기본 범위: 오늘
+  document.getElementById('log-start').value = today();
+  document.getElementById('log-end').value = today();
+  renderAll();
+  setStatus('');
+  if (!getMyName()) openNamePicker();
+  window.addEventListener('resize', renderChart);
+  refreshAll(true);
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') {
+      document.getElementById('today-date').textContent = fmt(new Date());
+      renderAll();
+      refreshAll(false);
+    }
+  });
+}
+if (typeof document !== 'undefined') init();
+</script>
+</body>
+</html>
